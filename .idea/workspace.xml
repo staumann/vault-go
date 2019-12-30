@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DefaultGradleProjectSettings">
+    <option name="isMigrated" value="true" />
+  </component>
+  <component name="GradleLocalSettings">
+    <option name="projectSyncType">
+      <map>
+        <entry key="$PROJECT_DIR$/../../import-service" value="PREVIEW" />
+        <entry key="$PROJECT_DIR$/../../product-service" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/category-chain/category-gate" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/category-chain/category-gate-test" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/category-chain/category-provider" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/category-chain/category-provider-test" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/category-chain/category-store" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/category-chain/category-store-test" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/product-chain/bayou-base-image" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/product-chain/bayou-product-gate" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/product-chain/bayou-product-gate-test" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/product-chain/bayou-product-provider" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/product-chain/bayou-product-provider-test" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/product-chain/bayou-product-store" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/product-chain/bayou-product-store-test" value="PREVIEW" />
+        <entry key="$USER_HOME$/pdata/utils/failed-message-collector" value="PREVIEW" />
+      </map>
+    </option>
+  </component>
+  <component name="ProjectId" id="1VhaXfvLE4VgCr9dGF40k9rT9Qf" />
+  <component name="PropertiesComponent">
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="aspect.path.notification.shown" value="true" />
+    <property name="go.import.settings.migrated" value="true" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+  </component>
+</project>
