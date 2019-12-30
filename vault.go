@@ -43,7 +43,7 @@ func getAccessLayer() Layer {
 		accessLayer = Layer{logical: c.Logical()}
 		if config.AppToken.Enabled {
 			ApplicationToken = createAppToken()
-			if err := accessLayer.WriteSecretToVault(config.AppToken.Path, map[string]interface{}{"token": ApplicationToken}); err != nil {
+			if err := accessLayer.writeSecretToVault(config.AppToken.Path, map[string]interface{}{"token": ApplicationToken}); err != nil {
 				log.Fatalf("Error storing appToken in vault: %s", err.Error())
 			}
 		}
@@ -56,7 +56,7 @@ func createAppToken() string {
 	return stringWithCharset(32, charset)
 }
 
-func (l Layer) GetValueFromVault(path string) map[string]interface{} {
+func (l Layer) getValueFromVault(path string) map[string]interface{} {
 
 	s, e := l.logical.Read(path)
 	if e != nil {
@@ -68,13 +68,13 @@ func (l Layer) GetValueFromVault(path string) map[string]interface{} {
 	return nil
 }
 
-func (l Layer) WriteSecretToVault(path string, data map[string]interface{}) error {
+func (l Layer) writeSecretToVault(path string, data map[string]interface{}) error {
 	_, e := l.logical.Write(path, map[string]interface{}{"data": data})
 	return e
 }
 
-func (l Layer) GetJsonBytes(path string) []byte {
-	data := l.GetValueFromVault(path)
+func (l Layer) getJsonBytes(path string) []byte {
+	data := l.getValueFromVault(path)
 	if len(data) == 0 {
 		log.Fatalf("Error nothing found under vault path %s", path)
 	} else {
@@ -90,7 +90,7 @@ func (l Layer) GetJsonBytes(path string) []byte {
 
 func (l Layer) getPassPhrase() string {
 	if _, ok := phraseData["pass"]; !ok {
-		result := l.GetValueFromVault(config.PassPhrasePath)
+		result := l.getValueFromVault(config.PassPhrasePath)
 
 		if result != nil {
 			phraseData = result["data"].(map[string]interface{})
@@ -98,7 +98,7 @@ func (l Layer) getPassPhrase() string {
 		if _, ok := phraseData["pass"]; !ok {
 			log.Printf("Writing new passphrase to vault")
 			phraseData["pass"] = stringWithCharset(32, charset)
-			err := l.WriteSecretToVault(config.PassPhrasePath, phraseData)
+			err := l.writeSecretToVault(config.PassPhrasePath, phraseData)
 			if err != nil {
 				panic(err)
 			}
@@ -186,4 +186,16 @@ func createHash(key string) string {
 	hasher := md5.New()
 	hasher.Write([]byte(key))
 	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func GetJsonBytes(path string) []byte {
+	return getAccessLayer().getJsonBytes(path)
+}
+
+func GetValue(path string) map[string]interface{} {
+	return getAccessLayer().getValueFromVault(path)
+}
+
+func GetPassPhrase() string {
+	return getAccessLayer().getPassPhrase()
 }

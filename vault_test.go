@@ -77,7 +77,7 @@ func TestLayer_GetValueFromVault(t *testing.T) {
 		},
 	}}
 
-	d := layer.GetValueFromVault("test/path")
+	d := layer.getValueFromVault("test/path")
 
 	assert.Equal(t, "testData", d["data"])
 }
@@ -96,7 +96,7 @@ func TestLayer_WriteSecretToVault(t *testing.T) {
 		},
 	}}
 	dMap := map[string]interface{}{"testData": "data", "pass": "testPass"}
-	e := layer.WriteSecretToVault("test/path", dMap)
+	e := layer.writeSecretToVault("test/path", dMap)
 
 	assert.Nil(t, e)
 }
@@ -108,7 +108,7 @@ func TestLayer_WriteSecretToVaultError(t *testing.T) {
 		},
 	}}
 
-	e := layer.WriteSecretToVault("/test", make(map[string]interface{}))
+	e := layer.writeSecretToVault("/test", make(map[string]interface{}))
 	assert.Equal(t, "testError", e.Error())
 }
 
@@ -124,7 +124,7 @@ func TestLayer_GetCredentialsJson(t *testing.T) {
 			return sc, nil
 		},
 	}}
-	b := layer.GetJsonBytes("test/path")
+	b := layer.getJsonBytes("test/path")
 	result := make(map[string]interface{})
 	_ = json.Unmarshal(b, &result)
 	assert.Equal(t, "testValue", result["testKey"])
