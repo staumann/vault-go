@@ -206,6 +206,7 @@ func GetPassPhrase() string {
 }
 
 func checkAndWaitForVault() bool {
+	log.Printf("checking if vault is reachable under: %s", config.VaultAddress)
 	resp, err := http.Get(config.VaultAddress)
 	timeout, parseError := time.ParseDuration(config.RetryTimeout)
 	if parseError != nil {
@@ -214,6 +215,7 @@ func checkAndWaitForVault() bool {
 	retries := config.RetryLimit
 	for {
 		if resp.StatusCode != 502 && err == nil {
+			log.Printf("vault is accessible: last request status code %d", resp.StatusCode)
 			return true
 		} else {
 			retries = retries - 1
