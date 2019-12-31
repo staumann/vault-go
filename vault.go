@@ -214,7 +214,7 @@ func checkAndWaitForVault() bool {
 	}
 	retries := config.RetryLimit
 	for {
-		if resp.StatusCode != 502 && err == nil {
+		if resp != nil && err == nil && resp.StatusCode != 502 {
 			log.Printf("vault is accessible: last request status code %d", resp.StatusCode)
 			return true
 		} else {
