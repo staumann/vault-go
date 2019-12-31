@@ -119,18 +119,23 @@ func stringWithCharset(length int, charset string) string {
 func getVaultClient() *api.Client {
 	if client == nil {
 		log.Printf("Connection to vault under %s", config.VaultAddress)
-		c, err := api.NewClient(&api.Config{
-			Address: config.VaultAddress,
-			HttpClient: &http.Client{
-				Timeout: 5 * time.Second,
-			},
-		})
+		if checkAndWaitForVault() {
+			c, err := api.NewClient(&api.Config{
+				Address: config.VaultAddress,
+				HttpClient: &http.Client{
+					Timeout: 5 * time.Second,
+				},
+			})
 
-		if err != nil {
-			panic(err)
+			if err != nil {
+				panic(err)
+			}
+			c.SetToken(config.AuthToken)
+			client = c
+		} else {
+			panic("No retries left. It was not possible to get a connection to vault.")
 		}
-		c.SetToken(config.AuthToken)
-		client = c
+
 	}
 
 	return client
@@ -198,4 +203,28 @@ func GetValue(path string) map[string]interface{} {
 
 func GetPassPhrase() string {
 	return getAccessLayer().getPassPhrase()
+}
+
+func checkAndWaitForVault() bool {
+	resp, err := http.Get(config.VaultAddress)
+	timeout, parseError := time.ParseDuration(config.RetryTimeout)
+	if parseError != nil {
+		timeout = 1 * time.Second
+	}
+	retries := config.RetryLimit
+	for {
+		if resp.StatusCode != 502 && err == nil {
+			return true
+		} else {
+			retries = retries - 1
+			log.Printf("error connecting to vault. %d retries left", retries)
+			if retries == 0 {
+				return false
+			}
+			time.Sleep(timeout)
+			resp, err = http.Get(config.VaultAddress)
+
+		}
+
+	}
 }

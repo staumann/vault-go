@@ -5,6 +5,8 @@ type Config struct {
 	VaultAddress   string
 	AuthToken      string
 	PassPhrasePath string
+	RetryLimit     int
+	RetryTimeout   string
 	AppToken       struct {
 		Enabled bool
 		Path    string
