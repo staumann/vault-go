@@ -18,11 +18,13 @@ import (
 var accessLayer Layer
 var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 var phraseData map[string]interface{}
-var ApplicationToken string
+var applicationToken string
 var client *api.Client
 var config Config
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const tokenName = "token"
+const dataName = "data"
 
 func init() {
 	phraseData = make(map[string]interface{})
@@ -41,9 +43,9 @@ func getAccessLayer() Layer {
 	if accessLayer == (Layer{}) {
 		c := getVaultClient()
 		accessLayer = Layer{logical: c.Logical()}
-		if config.AppToken.Enabled {
-			ApplicationToken = createAppToken()
-			if err := accessLayer.writeSecretToVault(config.AppToken.Path, map[string]interface{}{"token": ApplicationToken}); err != nil {
+		if config.AppToken.CreateAppToken {
+			applicationToken = createAppToken()
+			if err := accessLayer.writeSecretToVault(config.AppToken.Path, map[string]interface{}{"token": applicationToken}); err != nil {
 				log.Fatalf("Error storing appToken in vault: %s", err.Error())
 			}
 		}
@@ -69,7 +71,7 @@ func (l Layer) getValueFromVault(path string) map[string]interface{} {
 }
 
 func (l Layer) writeSecretToVault(path string, data map[string]interface{}) error {
-	_, e := l.logical.Write(path, map[string]interface{}{"data": data})
+	_, e := l.logical.Write(path, map[string]interface{}{dataName: data})
 	return e
 }
 
@@ -78,7 +80,7 @@ func (l Layer) getJsonBytes(path string) []byte {
 	if len(data) == 0 {
 		log.Fatalf("Error nothing found under vault path %s", path)
 	} else {
-		cred, e := json.Marshal(data["data"])
+		cred, e := json.Marshal(data[dataName])
 		if e != nil {
 			log.Print(e.Error())
 		}
@@ -93,7 +95,7 @@ func (l Layer) getPassPhrase() string {
 		result := l.getValueFromVault(config.PassPhrasePath)
 
 		if result != nil {
-			phraseData = result["data"].(map[string]interface{})
+			phraseData = result[dataName].(map[string]interface{})
 		}
 		if _, ok := phraseData["pass"]; !ok {
 			log.Printf("Writing new passphrase to vault")
@@ -220,7 +222,7 @@ func checkAndWaitForVault() bool {
 		} else {
 			retries = retries - 1
 			log.Printf("error connecting to vault. %d retries left", retries)
-			if retries == 0 {
+			if retries <= 0 {
 				return false
 			}
 			time.Sleep(timeout)
@@ -229,4 +231,28 @@ func checkAndWaitForVault() bool {
 		}
 
 	}
+}
+
+func refreshAppToken() {
+	data := GetValue(config.AppToken.Path)
+	applicationToken = GetStringFromSecret(data, tokenName)
+}
+
+//getDataFromSecret is a helper method to retrieve the stored data from the given secret data
+func GetStringFromSecret(sData map[string]interface{}, key string) string {
+	dataMap := sData[dataName].(map[string]interface{})
+
+	if v, ok := dataMap[key]; !ok {
+		return ""
+	} else {
+		return v.(string)
+	}
+}
+
+func GetAppToken(forceRefresh bool) string {
+	if applicationToken == "" || forceRefresh {
+		refreshAppToken()
+	}
+
+	return applicationToken
 }

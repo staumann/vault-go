@@ -8,7 +8,7 @@ type Config struct {
 	RetryLimit     int
 	RetryTimeout   string
 	AppToken       struct {
-		Enabled bool
-		Path    string
+		CreateAppToken bool
+		Path           string
 	}
 }

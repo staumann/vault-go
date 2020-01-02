@@ -5,6 +5,9 @@ import (
 	"errors"
 	"github.com/hashicorp/vault/api"
 	"github.com/stretchr/testify/assert"
+	"net/http"
+	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -28,9 +31,26 @@ func (mvl *MockVaultLogical) Write(path string, data map[string]interface{}) (*a
 	return nil, nil
 }
 
+var server *httptest.Server
+
+func TestMain(m *testing.M) {
+	initial := true
+	config.RetryLimit = 1
+	server = httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, r *http.Request) {
+		if initial {
+			responseWriter.WriteHeader(502)
+			initial = false
+		}
+		responseWriter.WriteHeader(200)
+
+	}))
+
+	os.Exit(m.Run())
+}
+
 func TestGetVaultClient(t *testing.T) {
 	authStruct := Config{
-		VaultAddress: "localhost:8888",
+		VaultAddress: server.URL,
 		AuthToken:    "123456789",
 	}
 	config = authStruct
@@ -49,10 +69,9 @@ func TestGetVaultClient(t *testing.T) {
 
 func TestGetVaultClientWithExistingClient(t *testing.T) {
 	config = Config{
-		VaultAddress: "localhost:8888",
+		VaultAddress: server.URL,
 		AuthToken:    "123456789",
 	}
-
 	c := getVaultClient()
 
 	config.VaultAddress = "https://irgendwo.wo.nur:12465"
@@ -60,7 +79,7 @@ func TestGetVaultClientWithExistingClient(t *testing.T) {
 
 	c = getVaultClient()
 
-	if c.Address() != "localhost:8888" {
+	if c.Address() != server.URL {
 		t.Error("Client is created everyTime the method is called. Expected: Client is only created once")
 		t.Fail()
 	}

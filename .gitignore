@@ -1,3 +1,5 @@
 v.iml
 vault.iml
 .idea
+vault-go.iml
+coverage.out
