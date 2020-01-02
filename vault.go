@@ -91,6 +91,9 @@ func (l Layer) getJsonBytes(path string) []byte {
 }
 
 func (l Layer) getPassPhrase() string {
+	if config.PassPhrasePath == "" {
+		return ""
+	}
 	if _, ok := phraseData["pass"]; !ok {
 		result := l.getValueFromVault(config.PassPhrasePath)
 
