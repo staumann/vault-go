@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-var accessLayer Layer
+var accesslayer layer
 var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 var phraseData map[string]interface{}
 var applicationToken string
@@ -30,35 +30,36 @@ func init() {
 	phraseData = make(map[string]interface{})
 }
 
-type Layer struct {
+type layer struct {
 	logical logicalInterface
 }
 
+//Init the function to initialize the vault plugin. Pass the configuration Object to use.
 func Init(cfg Config) {
 	config = cfg
 	getVaultClient()
 }
 
-func getAccessLayer() Layer {
-	if accessLayer == (Layer{}) {
+func getAccessLayer() layer {
+	if accesslayer == (layer{}) {
 		c := getVaultClient()
-		accessLayer = Layer{logical: c.Logical()}
+		accesslayer = layer{logical: c.Logical()}
 		if config.AppToken.CreateAppToken {
 			applicationToken = createAppToken()
-			if err := accessLayer.writeSecretToVault(config.AppToken.Path, map[string]interface{}{"token": applicationToken}); err != nil {
+			if err := accesslayer.writeSecretToVault(config.AppToken.Path, map[string]interface{}{"token": applicationToken}); err != nil {
 				log.Fatalf("Error storing appToken in vault: %s", err.Error())
 			}
 		}
 	}
 
-	return accessLayer
+	return accesslayer
 }
 
 func createAppToken() string {
 	return stringWithCharset(32, charset)
 }
 
-func (l Layer) getValueFromVault(path string) map[string]interface{} {
+func (l layer) getValueFromVault(path string) map[string]interface{} {
 
 	s, e := l.logical.Read(path)
 	if e != nil {
@@ -70,12 +71,12 @@ func (l Layer) getValueFromVault(path string) map[string]interface{} {
 	return nil
 }
 
-func (l Layer) writeSecretToVault(path string, data map[string]interface{}) error {
+func (l layer) writeSecretToVault(path string, data map[string]interface{}) error {
 	_, e := l.logical.Write(path, map[string]interface{}{dataName: data})
 	return e
 }
 
-func (l Layer) getJsonBytes(path string) []byte {
+func (l layer) getJSONBytes(path string) []byte {
 	data := l.getValueFromVault(path)
 	if len(data) == 0 {
 		log.Fatalf("Error nothing found under vault path %s", path)
@@ -90,7 +91,7 @@ func (l Layer) getJsonBytes(path string) []byte {
 	return nil
 }
 
-func (l Layer) getPassPhrase() string {
+func (l layer) getPassPhrase() string {
 	if config.PassPhrasePath == "" {
 		return ""
 	}
@@ -146,24 +147,32 @@ func getVaultClient() *api.Client {
 	return client
 }
 
+//EncryptString uses Encrypt and just converts the given string to a byte array. As PassPhrase this method uses a generated passphrase stored in vault.
 func EncryptString(dataString string) []byte {
 	return Encrypt([]byte(dataString), getAccessLayer().getPassPhrase())
 }
+
+//EncryptBytes see Encrypt. The PassPhrase is randomly generated and stored in vault
 func EncryptBytes(data []byte) []byte {
 	return Encrypt(data, getAccessLayer().getPassPhrase())
 }
+
+//DecryptBytes see Decrypt. The PassPhrase is randomly generated and stored in vault
 func DecryptBytes(data []byte) []byte {
 	return Decrypt(data, getAccessLayer().getPassPhrase())
 }
+
+//DecryptString uses Decrypt and just converts the given string to a byte array. As PassPhrase this method uses a generated passphrase stored in vault.
 func DecryptString(dataString string) []byte {
 	return Decrypt([]byte(dataString), getAccessLayer().getPassPhrase())
 }
 
+//Decrypt decrypt the given byte array using the passed passPhrase. If the decryption was successful the decrypted bytes are returned.
 func Decrypt(data []byte, passphrase string) []byte {
 	key := []byte(createHash(passphrase))
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err.Error())
+		log.Printf("error decrypting byte array: %s", err.Error())
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
@@ -173,20 +182,21 @@ func Decrypt(data []byte, passphrase string) []byte {
 	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
 	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		panic(err.Error())
+		log.Printf("error decrypting byte array: %s", err.Error())
 	}
 	return plaintext
 }
 
+//Encrypt encrypts the given byte array with the given passphrase and returns the encrypted byte array.
 func Encrypt(data []byte, passphrase string) []byte {
 	block, _ := aes.NewCipher([]byte(createHash(passphrase)))
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		panic(err.Error())
+		log.Printf("error encrypting byte array: %s", err.Error())
 	}
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err = io.ReadFull(crand.Reader, nonce); err != nil {
-		panic(err.Error())
+		log.Printf("error encrypting byte array: %s", err.Error())
 	}
 	ciphertext := gcm.Seal(nonce, nonce, data, nil)
 	return ciphertext
@@ -198,14 +208,27 @@ func createHash(key string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func GetJsonBytes(path string) []byte {
-	return getAccessLayer().getJsonBytes(path)
+//GetJSONBytes retrieves the stored json under the given path. The expected strcture of the secret:
+//	{
+//		"data": {
+//			"jsonKey1": "value",
+//			"jsonKey2": [
+//				"test1",
+//				"test2"
+//			]
+//		}
+//	}
+func GetJSONBytes(path string) []byte {
+	return getAccessLayer().getJSONBytes(path)
 }
 
+//GetValue retrieves the generic data from a vault secret using the given path
 func GetValue(path string) map[string]interface{} {
 	return getAccessLayer().getValueFromVault(path)
 }
 
+//GetPassPhrase this method retrieves the current passPhrase from vault. If no passPhrase exists a new one is randomly created.
+//If you plan to use this method you need to pass the "PassPhrasePath" in the configuration object
 func GetPassPhrase() string {
 	return getAccessLayer().getPassPhrase()
 }
@@ -222,17 +245,14 @@ func checkAndWaitForVault() bool {
 		if resp != nil && err == nil && resp.StatusCode != 502 {
 			log.Printf("vault is accessible: last request status code %d", resp.StatusCode)
 			return true
-		} else {
-			retries = retries - 1
-			log.Printf("error connecting to vault. %d retries left", retries)
-			if retries <= 0 {
-				return false
-			}
-			time.Sleep(timeout)
-			resp, err = http.Get(config.VaultAddress)
-
 		}
-
+		retries = retries - 1
+		log.Printf("error connecting to vault. %d retries left", retries)
+		if retries <= 0 {
+			return false
+		}
+		time.Sleep(timeout)
+		resp, err = http.Get(config.VaultAddress)
 	}
 }
 
@@ -241,17 +261,20 @@ func refreshAppToken() {
 	applicationToken = GetStringFromSecret(data, tokenName)
 }
 
-//getDataFromSecret is a helper method to retrieve the stored data from the given secret data
+//GetStringFromSecret is a helper method to retrieve the stored data from the given secret data as an string
 func GetStringFromSecret(sData map[string]interface{}, key string) string {
 	dataMap := sData[dataName].(map[string]interface{})
-
-	if v, ok := dataMap[key]; !ok {
+	var v interface{}
+	var ok bool
+	if v, ok = dataMap[key]; !ok {
 		return ""
-	} else {
-		return v.(string)
 	}
+	return v.(string)
+
 }
 
+//GetAppToken retrieves the current AppToken from vault using the current config.
+//forceRefresh triggers a refresh of the appToken. After the refresh is completed the new token is returned.
 func GetAppToken(forceRefresh bool) string {
 	if applicationToken == "" || forceRefresh {
 		refreshAppToken()
