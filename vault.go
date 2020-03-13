@@ -137,6 +137,7 @@ func getVaultClient() *api.Client {
 				panic(err)
 			}
 			retryDelay := 5 * time.Second
+			c.SetToken(config.AuthToken)
 			go func() {
 				for {
 					s, err := client.Auth().Token().RenewSelf(60)
