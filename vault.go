@@ -34,7 +34,7 @@ type layer struct {
 	logical logicalInterface
 }
 
-//Init the function to initialize the vault plugin. Pass the configuration Object to use.
+// Init the function to initialize the vault plugin. Pass the configuration Object to use.
 func Init(cfg Config) {
 	config = cfg
 	getVaultClient()
@@ -136,7 +136,21 @@ func getVaultClient() *api.Client {
 			if err != nil {
 				panic(err)
 			}
-			c.SetToken(config.AuthToken)
+			retryDelay := 5 * time.Second
+			go func() {
+				for {
+					s, err := client.Auth().Token().RenewSelf(60)
+					if err != nil {
+						log.Printf("token renew: Renew client token error: %v; retrying in %v", err, retryDelay)
+						time.Sleep(retryDelay)
+						continue
+					}
+
+					nextRenew := s.Auth.LeaseDuration / 2
+					log.Printf("Successfully renewed the client token; next renewal in %d seconds", nextRenew)
+					time.Sleep(time.Duration(nextRenew) * time.Second)
+				}
+			}()
 			client = c
 		} else {
 			panic("No retries left. It was not possible to get a connection to vault.")
