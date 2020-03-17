@@ -148,7 +148,7 @@ func getVaultClient() *api.Client {
 					}
 
 					nextRenew := s.Auth.LeaseDuration / 2
-					log.Printf("Successfully renewed the client token; next renewal in %d seconds", nextRenew)
+					// log.Printf("Successfully renewed the client token; next renewal in %d seconds", nextRenew)
 					time.Sleep(time.Duration(nextRenew) * time.Second)
 				}
 			}()
