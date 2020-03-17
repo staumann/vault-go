@@ -7,6 +7,7 @@ type Config struct {
 	PassPhrasePath string
 	RetryLimit     int
 	RetryTimeout   string
+	RenewInterval  int
 	AppToken       struct {
 		CreateAppToken bool
 		Path           string

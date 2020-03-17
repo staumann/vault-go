@@ -140,7 +140,7 @@ func getVaultClient() *api.Client {
 			c.SetToken(config.AuthToken)
 			go func() {
 				for {
-					s, err := client.Auth().Token().RenewSelf(60)
+					s, err := client.Auth().Token().RenewSelf(config.RenewInterval)
 					if err != nil {
 						log.Printf("token renew: Renew client token error: %v; retrying in %v", err, retryDelay)
 						time.Sleep(retryDelay)
