@@ -143,6 +143,7 @@ func (l *layer) getVaultClient() {
 		l.client = c
 		retryDelay := 5 * time.Second
 		l.client.SetToken(l.config.AuthToken)
+		l.logical = c.Logical()
 		go func() {
 			for {
 				s, err := l.client.Auth().Token().RenewSelf(l.config.RenewInterval)
