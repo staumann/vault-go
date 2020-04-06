@@ -26,6 +26,7 @@ const dataName = "data"
 
 func init() {
 	phraseData = make(map[string]interface{})
+	accessLayerMap = make(map[string]*layer)
 }
 
 type layer struct {
