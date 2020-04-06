@@ -35,11 +35,15 @@ type layer struct {
 }
 
 // Init the function to initialize the vault plugin. Pass the configuration Object to use.
-func Init(id string, cfg Config) {
-	GetAccessLayer(id, cfg)
+func GetAccessLayer(id string) *layer {
+	if v, ok := accessLayerMap[id]; ok {
+		return v
+	} else {
+		return nil
+	}
 }
 
-func GetAccessLayer(id string, cfg Config) *layer {
+func Init(id string, cfg Config) *layer {
 	if v, ok := accessLayerMap[id]; ok {
 		return v
 	} else {
